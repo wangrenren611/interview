@@ -1357,7 +1357,7 @@ function useApi<T>(url: string): UseApiResult<T> {
     }
   };
 
-  useEffect(()2 => {
+  useEffect(()=> {
     fetchData();
   }, [url]);
 
