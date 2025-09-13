@@ -1,5 +1,48 @@
 # 2025年TypeScript相关技术知识深度分析
 
+## 目录
+
+- [前言](#前言)
+- [一、TypeScript基础概念与优势](#一typescript基础概念与优势)
+  - [1.1 什么是TypeScript](#11-什么是typescript)
+  - [1.2 TypeScript的主要优势](#12-typescript的主要优势)
+  - [1.3 TypeScript与JavaScript的关系](#13-typescript与javascript的关系)
+- [二、TypeScript类型系统详解](#二typescript类型系统详解)
+  - [2.1 基础类型](#21-基础类型)
+  - [2.2 接口与类型别名](#22-接口与类型别名)
+  - [2.3 泛型](#23-泛型)
+- [三、TypeScript高级类型操作](#三typescript高级类型操作)
+  - [3.1 条件类型](#31-条件类型)
+  - [3.2 映射类型](#32-映射类型)
+  - [3.3 模板字面量类型](#33-模板字面量类型)
+- [四、TypeScript 5.5新特性详解](#四typescript-55新特性详解)
+  - [4.1 推断类型谓词](#41-推断类型谓词)
+  - [4.2 常量索引访问的控制流收窄](#42-常量索引访问的控制流收窄)
+  - [4.3 JSDoc @import标签](#43-jsdoc-import标签)
+  - [4.4 正则表达式语法检查](#44-正则表达式语法检查)
+- [五、TypeScript装饰器与元数据反射](#五typescript装饰器与元数据反射)
+  - [5.1 装饰器基础](#51-装饰器基础)
+  - [5.2 TypeScript 5.0+装饰器](#52-typescript-50装饰器)
+  - [5.3 元数据反射](#53-元数据反射)
+- [六、TypeScript性能优化与最佳实践](#六typescript性能优化与最佳实践)
+  - [6.1 TypeScript 7.0（原生Go版本）性能提升](#61-typescript-70原生go版本性能提升)
+  - [6.2 类型安全最佳实践](#62-类型安全最佳实践)
+  - [6.3 模块和命名空间最佳实践](#63-模块和命名空间最佳实践)
+- [七、TypeScript与现代前端框架集成](#七typescript与现代前端框架集成)
+  - [7.1 React与TypeScript](#71-react与typescript)
+  - [7.2 Vue与TypeScript](#72-vue与typescript)
+- [八、2025年TypeScript发展趋势](#八2025年typescript发展趋势)
+  - [8.1 原生编译器性能革命](#81-原生编译器性能革命)
+  - [8.2 更强大的类型系统](#82-更强大的类型系统)
+  - [8.3 与新兴技术的集成](#83-与新兴技术的集成)
+- [结语](#结语)
+- [九、TypeScript面试题与答案解析](#九typescript面试题与答案解析)
+  - [9.1 初级面试题](#91-初级面试题)
+  - [9.2 中级面试题](#92-中级面试题)
+  - [9.3 高级面试题](#93-高级面试题)
+  - [9.4 TypeScript 5.5新特性面试题](#94-typescript-55新特性面试题)
+  - [9.5 TypeScript性能优化与最佳实践面试题](#95-typescript性能优化与最佳实践面试题)
+
 ## 前言
 
 TypeScript作为JavaScript的超集，在2025年继续引领着前端开发的发展趋势。随着TypeScript 5.5、5.6以及即将到来的TypeScript 7.0（原生Go版本）的发布，TypeScript在性能、类型系统和开发体验方面都有了显著提升。本文将深入分析TypeScript的核心概念、高级特性、最佳实践以及2025年的最新发展趋势。
@@ -1314,7 +1357,7 @@ function useApi<T>(url: string): UseApiResult<T> {
     }
   };
 
-  useEffect(() => {
+  useEffect(()2 => {
     fetchData();
   }, [url]);
 
@@ -1514,7 +1557,7 @@ function processResponse(response: ApiResponse, key: 'data' | 'message') {
 **答案解析**：
 TypeScript 5.5增加了对正则表达式字面量的基本语法检查功能。在之前的版本中，TypeScript不会检查正则表达式的语法正确性，这可能导致运行时错误。新版本会在编译时检测一些常见的正则表达式语法错误。
 
-```typescript
+```
 // TypeScript 5.5之前的版本
 // 以下错误的正则表达式不会被检测到
 let myRegex1 = /@robot(\s+(please|immediately)))? do some task/; // 多余的括号
@@ -1542,7 +1585,7 @@ let regexFromString = new RegExp("@robot(\\s+(please|immediately)))? do some tas
 **答案解析**：
 TypeScript 5.5增加了对ECMAScript新标准中Set对象新方法的支持，包括union、intersection、difference和symmetricDifference等方法。这些方法使得集合操作更加直观和强大。
 
-```typescript
+```
 // 需要在tsconfig.json中配置lib选项以支持这些新方法
 // {
 //   "compilerOptions": {
