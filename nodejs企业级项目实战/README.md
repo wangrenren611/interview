@@ -1,8 +1,8 @@
-# Node.js + Koa2 企业级电商项目实战
+# Node.js + Koa2 + TypeScript 企业级电商项目实战
 
 ## 📖 项目概述
 
-本项目是一个基于 **Node.js + Koa2** 构建的企业级电商系统实战教程，旨在通过一个完整的电商项目案例，深入讲解企业级Node.js应用的设计思想、开发规范和最佳实践。
+本项目是一个基于 **Node.js + Koa2 + TypeScript** 构建的企业级电商系统实战教程，旨在通过一个完整的电商项目案例，深入讲解企业级Node.js应用的设计思想、开发规范和最佳实践。采用TypeScript提供类型安全、更好的开发体验和代码可维护性。
 
 ### 🎯 学习目标
 
@@ -16,17 +16,19 @@
 
 #### 后端核心技术
 - **运行环境**：Node.js 18+ (LTS版本)
+- **编程语言**：TypeScript 5.x
 - **Web框架**：Koa2 + Koa-Router
 - **数据库**：MySQL 8.0 + Redis 6.0+
-- **ORM框架**：Sequelize 6.x
+- **ORM框架**：Sequelize 6.x + TypeScript支持
 - **认证授权**：JWT + Passport.js
-- **参数验证**：Joi
+- **参数验证**：Joi + TypeScript类型验证
 - **日志系统**：Winston + Morgan
 
 #### 开发工具与规范
-- **代码规范**：ESLint + Prettier
-- **API文档**：Swagger + OpenAPI 3.0
-- **测试框架**：Jest + Supertest
+- **代码规范**：ESLint + Prettier + TypeScript ESLint
+- **类型检查**：TypeScript Compiler + 严格模式
+- **API文档**：Swagger + OpenAPI 3.0 + TypeScript类型生成
+- **测试框架**：Jest + Supertest + TypeScript支持
 - **进程管理**：PM2
 - **容器化**：Docker + Docker Compose
 - **版本控制**：Git + Husky (Git Hooks)
@@ -113,8 +115,8 @@ npm run dev
 ### 🌟 项目特色
 
 #### 1. 企业级代码规范
-- **统一的代码风格**：基于ESLint + Prettier的代码规范
-- **完整的类型检查**：使用JSDoc进行类型注释
+- **统一的代码风格**：基于ESLint + Prettier + TypeScript的代码规范
+- **完整的类型安全**：TypeScript严格模式 + 完整类型定义
 - **Git提交规范**：基于Conventional Commits的提交信息规范
 
 #### 2. 高可扩展性架构
