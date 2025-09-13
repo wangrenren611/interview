@@ -1293,7 +1293,7 @@ export default defineConfig({
 ```
 
 ### 权限更新流程图
-```
+```mermaid
 graph TB
     A[用户权限变更] --> B{权限更新方式?}
     B -->|全局更新| C[调用setGlobalPermissions]
