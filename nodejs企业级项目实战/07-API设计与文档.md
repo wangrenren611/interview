@@ -2,14 +2,90 @@
 
 ## 1. API设计概述
 
+### 1.0 TypeScript在API设计中的优势
+
+在API设计与文档中，TypeScript提供了强大的类型安全保障和开发体验提升：
+
+#### 1.0.1 类型安全的API接口
+```typescript
+// API请求和响应类型定义
+interface ApiRequest<T = any> {
+  body?: T;
+  params?: Record<string, string>;
+  query?: Record<string, string>;
+  headers?: Record<string, string>;
+}
+
+interface ApiResponse<T = any> {
+  success: boolean;
+  message: string;
+  data?: T;
+  errors?: ValidationError[];
+  meta?: ResponseMeta;
+}
+
+interface ResponseMeta {
+  page?: number;
+  limit?: number;
+  total?: number;
+  total_pages?: number;
+  timestamp: string;
+  request_id: string;
+}
+
+interface ValidationError {
+  field: string;
+  message: string;
+  code: string;
+}
+
+// 分页响应类型
+interface PaginatedResponse<T> extends ApiResponse<T[]> {
+  meta: ResponseMeta & {
+    page: number;
+    limit: number;
+    total: number;
+    total_pages: number;
+  };
+}
+```
+
+#### 1.0.2 统一的错误处理类型
+```typescript
+// 错误类型定义
+interface ApiError {
+  code: string;
+  message: string;
+  details?: any;
+  timestamp: string;
+  request_id: string;
+}
+
+// 业务错误类型
+type BusinessErrorCode = 
+  | 'USER_NOT_FOUND'
+  | 'PRODUCT_OUT_OF_STOCK'
+  | 'INSUFFICIENT_PERMISSIONS'
+  | 'INVALID_PAYMENT_METHOD'
+  | 'ORDER_ALREADY_PROCESSED';
+
+// 验证错误类型
+interface ValidationError {
+  field: string;
+  message: string;
+  code: 'REQUIRED' | 'INVALID_FORMAT' | 'TOO_LONG' | 'TOO_SHORT' | 'INVALID_VALUE';
+  value?: any;
+}
+```
+
 ### 1.1 API设计的重要性
 
 在企业级应用开发中，良好的API设计是确保系统可维护性、可扩展性和易用性的关键因素。优秀的API设计能够：
 
-1. **提升开发效率**：清晰的API接口定义能够降低前后端协作成本
-2. **增强系统稳定性**：规范的API设计能够减少错误和异常情况
-3. **提高可维护性**：良好的设计模式使API易于理解和修改
-4. **促进团队协作**：标准的API文档能够提高团队沟通效率
+1. **提升开发效率**：清晰的API接口定义能够降低前后端协作成本，TypeScript类型定义提供编译时检查
+2. **增强系统稳定性**：规范的API设计能够减少错误和异常情况，类型安全确保数据结构一致性
+3. **提高可维护性**：良好的设计模式使API易于理解和修改，类型定义作为活文档
+4. **促进团队协作**：标准的API文档能够提高团队沟通效率，TypeScript接口定义提供统一的契约
 
 ### 1.2 API设计原则
 
@@ -42,18 +118,71 @@ REST（Representational State Transfer）是一种软件架构风格，具有以
 
 #### 2.2.1 资源命名规范
 
-```javascript
+```typescript
 // ✅ 推荐的资源命名
+// 用户资源
 GET /api/users          // 获取用户列表
 GET /api/users/123      // 获取特定用户
 POST /api/users         // 创建新用户
 PUT /api/users/123      // 更新用户信息
 DELETE /api/users/123   // 删除用户
 
+// 商品资源
+GET /api/products       // 获取商品列表
+GET /api/products/456   // 获取特定商品
+POST /api/products      // 创建新商品
+PUT /api/products/456   // 更新商品信息
+DELETE /api/products/456 // 删除商品
+
+// 订单资源
+GET /api/orders         // 获取订单列表
+GET /api/orders/789     // 获取特定订单
+POST /api/orders        // 创建新订单
+PATCH /api/orders/789   // 更新订单状态
+
 // ❌ 不推荐的命名
 GET /api/getUsers
 GET /api/UserList
 POST /api/createUser
+PUT /api/updateProduct/456
+```
+
+#### 2.2.2 TypeScript路由类型定义
+```typescript
+// 路由参数类型定义
+interface UserRouteParams {
+  id: string;
+}
+
+interface ProductRouteParams {
+  id: string;
+}
+
+interface OrderRouteParams {
+  id: string;
+}
+
+// 查询参数类型定义
+interface UserQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: 'active' | 'inactive' | 'banned';
+  sort_by?: 'name' | 'email' | 'created_at';
+  sort_order?: 'asc' | 'desc';
+}
+
+interface ProductQueryParams {
+  page?: number;
+  limit?: number;
+  category_id?: number;
+  brand_id?: number;
+  min_price?: number;
+  max_price?: number;
+  featured?: boolean;
+  status?: 'active' | 'inactive' | 'draft';
+  search?: string;
+}
 ```
 
 #### 2.2.2 使用名词而非动词
@@ -98,56 +227,144 @@ GET /api/order
 
 #### 2.3.2 方法使用示例
 
-```javascript
+```typescript
 // 获取用户列表
 GET /api/users
+// 响应类型
+interface GetUsersResponse extends PaginatedResponse<User> {}
 
 // 获取特定用户
 GET /api/users/123
+// 响应类型
+interface GetUserResponse extends ApiResponse<User> {}
 
 // 创建新用户
 POST /api/users
-{
-  "name": "张三",
-  "email": "zhangsan@example.com"
+// 请求类型
+interface CreateUserRequest {
+  name: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
 }
+// 响应类型
+interface CreateUserResponse extends ApiResponse<User> {}
 
 // 更新用户信息（全量更新）
 PUT /api/users/123
-{
-  "name": "张三",
-  "email": "zhangsan_new@example.com"
+// 请求类型
+interface UpdateUserRequest {
+  name: string;
+  email: string;
+  status?: 'active' | 'inactive' | 'banned';
 }
+// 响应类型
+interface UpdateUserResponse extends ApiResponse<User> {}
 
 // 更新用户信息（部分更新）
 PATCH /api/users/123
-{
-  "email": "zhangsan_updated@example.com"
+// 请求类型
+interface PatchUserRequest {
+  email?: string;
+  status?: 'active' | 'inactive' | 'banned';
 }
+// 响应类型
+interface PatchUserResponse extends ApiResponse<User> {}
 
 // 删除用户
 DELETE /api/users/123
+// 响应类型
+interface DeleteUserResponse extends ApiResponse<null> {}
+```
+
+#### 2.3.3 TypeScript控制器类型定义
+```typescript
+import { Context } from 'koa';
+
+// 控制器方法类型定义
+type ControllerMethod<TRequest = any, TResponse = any> = (
+  ctx: Context
+) => Promise<void>;
+
+// 用户控制器接口
+interface UserController {
+  list: ControllerMethod<UserQueryParams, GetUsersResponse>;
+  show: ControllerMethod<UserRouteParams, GetUserResponse>;
+  create: ControllerMethod<CreateUserRequest, CreateUserResponse>;
+  update: ControllerMethod<UpdateUserRequest & UserRouteParams, UpdateUserResponse>;
+  patch: ControllerMethod<PatchUserRequest & UserRouteParams, PatchUserResponse>;
+  delete: ControllerMethod<UserRouteParams, DeleteUserResponse>;
+}
+
+// 商品控制器接口
+interface ProductController {
+  list: ControllerMethod<ProductQueryParams, PaginatedResponse<Product>>;
+  show: ControllerMethod<ProductRouteParams, ApiResponse<Product>>;
+  create: ControllerMethod<CreateProductRequest, ApiResponse<Product>>;
+  update: ControllerMethod<UpdateProductRequest & ProductRouteParams, ApiResponse<Product>>;
+  delete: ControllerMethod<ProductRouteParams, ApiResponse<null>>;
+}
 ```
 
 ### 2.4 状态码设计
 
 #### 2.4.1 常用HTTP状态码
 
-```javascript
-// 2xx 成功状态码
-200 OK              // 请求成功
-201 Created         // 资源创建成功
-204 No Content      // 请求成功但无返回内容
+```typescript
+// HTTP状态码类型定义
+type HttpStatusCode = 
+  // 2xx 成功状态码
+  | 200  // OK - 请求成功
+  | 201  // Created - 资源创建成功
+  | 204  // No Content - 请求成功但无返回内容
+  
+  // 4xx 客户端错误状态码
+  | 400  // Bad Request - 请求参数错误
+  | 401  // Unauthorized - 未认证
+  | 403  // Forbidden - 无权限访问
+  | 404  // Not Found - 资源不存在
+  | 409  // Conflict - 资源冲突
+  | 422  // Unprocessable Entity - 请求格式正确但语义错误
+  | 429  // Too Many Requests - 请求过于频繁
+  
+  // 5xx 服务器错误状态码
+  | 500  // Internal Server Error - 服务器内部错误
+  | 502  // Bad Gateway - 网关错误
+  | 503  // Service Unavailable - 服务不可用
+  | 504; // Gateway Timeout - 网关超时
 
-// 4xx 客户端错误状态码
-400 Bad Request     // 请求参数错误
-401 Unauthorized    // 未认证
-403 Forbidden       // 无权限访问
-404 Not Found       // 资源不存在
-409 Conflict        // 资源冲突
+// 状态码对应的响应类型
+interface StatusCodeResponse {
+  200: ApiResponse<any>;
+  201: ApiResponse<any>;
+  204: { success: true; message: string };
+  400: ApiResponse<null> & { errors: ValidationError[] };
+  401: ApiResponse<null> & { message: 'Unauthorized' };
+  403: ApiResponse<null> & { message: 'Forbidden' };
+  404: ApiResponse<null> & { message: 'Not Found' };
+  409: ApiResponse<null> & { message: 'Conflict' };
+  422: ApiResponse<null> & { errors: ValidationError[] };
+  429: ApiResponse<null> & { message: 'Too Many Requests' };
+  500: ApiResponse<null> & { message: 'Internal Server Error' };
+}
 
-// 5xx 服务器错误状态码
-500 Internal Server Error  // 服务器内部错误
+// 状态码工具类
+class StatusCode {
+  static readonly OK = 200;
+  static readonly CREATED = 201;
+  static readonly NO_CONTENT = 204;
+  static readonly BAD_REQUEST = 400;
+  static readonly UNAUTHORIZED = 401;
+  static readonly FORBIDDEN = 403;
+  static readonly NOT_FOUND = 404;
+  static readonly CONFLICT = 409;
+  static readonly UNPROCESSABLE_ENTITY = 422;
+  static readonly TOO_MANY_REQUESTS = 429;
+  static readonly INTERNAL_SERVER_ERROR = 500;
+  static readonly BAD_GATEWAY = 502;
+  static readonly SERVICE_UNAVAILABLE = 503;
+  static readonly GATEWAY_TIMEOUT = 504;
+}
 502 Bad Gateway            // 网关错误
 503 Service Unavailable    // 服务不可用
 ```
@@ -295,9 +512,22 @@ Content-Type: application/json
 
 #### 2.6.2 错误码设计
 
-```javascript
+```typescript
 // 错误码分类
-const ERROR_CODES = {
+// src/constants/error-codes.ts
+interface ErrorCodeCategory {
+  [key: string]: string;
+}
+
+interface ErrorCodes {
+  COMMON: ErrorCodeCategory;
+  USER: ErrorCodeCategory;
+  PRODUCT: ErrorCodeCategory;
+  ORDER: ErrorCodeCategory;
+  PAYMENT: ErrorCodeCategory;
+}
+
+const ERROR_CODES: ErrorCodes = {
   // 通用错误
   COMMON: {
     INVALID_PARAMS: 'COMMON_INVALID_PARAMS',
@@ -344,11 +574,18 @@ npm install swagger-jsdoc swagger-ui-koa
 
 #### 3.2.2 Swagger配置
 
-```javascript
-// src/config/swagger.js
-const swaggerJsdoc = require('swagger-jsdoc');
+```typescript
+// src/config/swagger.ts
+import swaggerJsdoc from 'swagger-jsdoc';
+import { SwaggerDefinition } from 'swagger-jsdoc';
 
-const options = {
+// Swagger配置接口
+interface SwaggerOptions {
+  definition: SwaggerDefinition;
+  apis: string[];
+}
+
+const options: SwaggerOptions = {
   definition: {
     openapi: '3.0.0',
     info: {
@@ -393,12 +630,12 @@ module.exports = swaggerJsdoc(options);
 
 #### 3.2.3 Swagger UI集成
 
-```javascript
-// src/app.js
-const Koa = require('koa');
-const Router = require('koa-router');
-const swaggerUi = require('swagger-ui-koa');
-const swaggerSpec = require('./config/swagger');
+```typescript
+// src/app.ts
+import Koa from 'koa';
+import Router from 'koa-router';
+import swaggerUi from 'swagger-ui-koa';
+import { swaggerSpec } from './config/swagger';
 
 const app = new Koa();
 const router = new Router();

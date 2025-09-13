@@ -2,6 +2,71 @@
 
 ## 1. 数据库设计原则
 
+### 1.0 TypeScript与数据库ORM集成
+
+在开始数据库设计之前，我们先了解TypeScript如何与Sequelize ORM集成，提供类型安全的数据库操作：
+
+#### 1.0.1 Sequelize TypeScript配置
+
+```typescript
+// src/database/connection.ts
+import { Sequelize, Options } from 'sequelize';
+import config from '../config';
+
+const sequelizeOptions: Options = {
+  host: config.database.host,
+  port: config.database.port,
+  dialect: 'mysql' as const,
+  timezone: config.database.timezone,
+  logging: config.database.logging,
+  pool: config.database.pool,
+  define: {
+    timestamps: true,
+    underscored: true,
+    freezeTableName: true,
+    paranoid: false
+  }
+};
+
+const sequelize = new Sequelize(
+  config.database.database,
+  config.database.username,
+  config.database.password,
+  sequelizeOptions
+);
+
+export { sequelize };
+export default sequelize;
+```
+
+#### 1.0.2 类型定义示例
+
+```typescript
+// src/app/types/user.types.ts
+export interface UserAttributes {
+  id: number;
+  username: string;
+  email: string;
+  phone?: string;
+  password_hash: string;
+  salt: string;
+  status: 'active' | 'inactive' | 'banned';
+  email_verified: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface UserCreationAttributes extends Omit<UserAttributes, 'id' | 'created_at' | 'updated_at'> {
+  password: string; // 创建时使用明文密码
+}
+
+export interface UserInstance extends UserAttributes {
+  validatePassword(password: string): Promise<boolean>;
+  getRoles(): Promise<RoleInstance[]>;
+  hasPermission(permissionName: string): Promise<boolean>;
+}
+```
+
 ### 1.1 关系型数据库三范式
 
 #### 1.1.1 第一范式（1NF）：原子性
@@ -238,60 +303,93 @@ CREATE TABLE order_items (
 
 ### 3.1 数据库连接配置
 
-```javascript
-// src/database/connection.js
-const { Sequelize } = require('sequelize');
-const config = require('../config');
+```typescript
+// src/database/connection.ts
+import { Sequelize, Options } from 'sequelize';
+import config from '../config';
+
+const sequelizeOptions: Options = {
+  host: config.database.host,
+  port: config.database.port,
+  dialect: 'mysql' as const,
+  timezone: config.database.timezone,
+  logging: config.database.logging,
+  
+  pool: {
+    max: 20,
+    min: 5,
+    acquire: 30000,
+    idle: 10000
+  },
+  
+  define: {
+    timestamps: true,
+    underscored: true,
+    freezeTableName: true,
+    paranoid: false
+  }
+};
 
 const sequelize = new Sequelize(
   config.database.database,
   config.database.username,
   config.database.password,
-  {
-    host: config.database.host,
-    port: config.database.port,
-    dialect: config.database.dialect,
-    timezone: config.database.timezone,
-    logging: config.database.logging,
-    
-    pool: {
-      max: 20,
-      min: 5,
-      acquire: 30000,
-      idle: 10000
-    },
-    
-    define: {
-      timestamps: true,
-      underscored: true,
-      freezeTableName: true,
-      paranoid: false
-    }
-  }
+  sequelizeOptions
 );
 
-const testConnection = async () => {
+const testConnection = async (): Promise<void> => {
   try {
     await sequelize.authenticate();
     console.log('✅ Database connection established');
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Database connection failed:', error.message);
     throw error;
   }
 };
 
-module.exports = { sequelize, testConnection };
+export { sequelize, testConnection };
+export default sequelize;
 ```
 
 ### 3.2 模型基类设计
 
-```javascript
-// src/app/models/base.model.js
-const { Model, DataTypes } = require('sequelize');
-const { sequelize } = require('../../database/connection');
+```typescript
+// src/app/models/base.model.ts
+import { Model, FindAndCountOptions, Transaction, UpsertOptions } from 'sequelize';
+import { sequelize } from '../../database/connection';
+
+export interface PaginationOptions {
+  page?: number;
+  limit?: number;
+  where?: any;
+  include?: any[];
+  order?: any[];
+}
+
+export interface PaginationResult<T> {
+  data: T[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  };
+}
+
+export interface UpsertBatchOptions extends Omit<UpsertOptions, 'transaction'> {
+  transaction?: Transaction;
+}
+
+export interface UpsertBatchResult<T> {
+  instance: T;
+  created: boolean;
+}
 
 class BaseModel extends Model {
-  static async findWithPagination(options = {}) {
+  static async findWithPagination<T extends BaseModel>(
+    this: typeof BaseModel,
+    options: PaginationOptions = {}
+  ): Promise<PaginationResult<T>> {
     const {
       page = 1,
       limit = 10,
@@ -306,34 +404,38 @@ class BaseModel extends Model {
       where,
       include,
       order,
-      limit: parseInt(limit),
-      offset: parseInt(offset),
+      limit: parseInt(limit.toString()),
+      offset: parseInt(offset.toString()),
       distinct: true
-    });
+    } as FindAndCountOptions);
 
     return {
-      data: result.rows,
+      data: result.rows as T[],
       pagination: {
         total: result.count,
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: parseInt(page.toString()),
+        limit: parseInt(limit.toString()),
         pages: Math.ceil(result.count / limit)
       }
     };
   }
 
-  static async upsertBatch(records, options = {}) {
+  static async upsertBatch<T extends BaseModel>(
+    this: typeof BaseModel,
+    records: any[],
+    options: UpsertBatchOptions = {}
+  ): Promise<UpsertBatchResult<T>[]> {
     const transaction = options.transaction || await sequelize.transaction();
     
     try {
-      const results = [];
+      const results: UpsertBatchResult<T>[] = [];
       
       for (const record of records) {
         const [instance, created] = await this.upsert(record, {
           transaction,
           ...options
         });
-        results.push({ instance, created });
+        results.push({ instance: instance as T, created });
       }
       
       if (!options.transaction) {
@@ -349,7 +451,7 @@ class BaseModel extends Model {
     }
   }
 
-  toJSON() {
+  toJSON(): any {
     const values = { ...this.get() };
     delete values.password_hash;
     delete values.salt;
@@ -357,24 +459,37 @@ class BaseModel extends Model {
   }
 }
 
-module.exports = BaseModel;
+export default BaseModel;
 ```
 
 ### 3.3 核心模型实现
 
 #### 3.3.1 用户模型
-```javascript
-// src/app/models/user.model.js
-const { DataTypes } = require('sequelize');
-const bcrypt = require('bcryptjs');
-const BaseModel = require('./base.model');
+```typescript
+// src/app/models/user.model.ts
+import { DataTypes, ModelCtor, Model } from 'sequelize';
+import bcrypt from 'bcryptjs';
+import BaseModel from './base.model';
+import { sequelize } from '../../database/connection';
+import { UserAttributes, UserCreationAttributes, UserInstance } from '../types/user.types';
 
-class User extends BaseModel {
-  async validatePassword(password) {
+class User extends BaseModel implements UserInstance {
+  declare id: number;
+  declare username: string;
+  declare email: string;
+  declare phone?: string;
+  declare password_hash: string;
+  declare salt: string;
+  declare status: 'active' | 'inactive' | 'banned';
+  declare email_verified: boolean;
+  declare created_at: Date;
+  declare updated_at: Date;
+
+  async validatePassword(password: string): Promise<boolean> {
     return bcrypt.compare(password, this.password_hash);
   }
 
-  static async hashPassword(password) {
+  static async hashPassword(password: string): Promise<{ hash: string; salt: string }> {
     const salt = await bcrypt.genSalt(12);
     return {
       hash: await bcrypt.hash(password, salt),
@@ -382,17 +497,17 @@ class User extends BaseModel {
     };
   }
 
-  async getRoles() {
-    return await this.getRoleList({
+  async getRoles(): Promise<any[]> {
+    return await (this as any).getRoleList({
       attributes: ['id', 'name', 'display_name']
     });
   }
 
-  async hasPermission(permissionName) {
+  async hasPermission(permissionName: string): Promise<boolean> {
     const roles = await this.getRoles();
     
     for (const role of roles) {
-      const permissions = await role.getPermissionList({
+      const permissions = await (role as any).getPermissionList({
         where: { name: permissionName }
       });
       
@@ -449,7 +564,7 @@ User.init({
   tableName: 'users',
   paranoid: true,
   hooks: {
-    beforeCreate: async (user) => {
+    beforeCreate: async (user: User): Promise<void> => {
       if (user.password_hash && !user.salt) {
         const { hash, salt } = await User.hashPassword(user.password_hash);
         user.password_hash = hash;
@@ -459,22 +574,64 @@ User.init({
   }
 });
 
-module.exports = User;
+export default User;
+export type UserModel = ModelCtor<User>;
 ```
 
 #### 3.3.2 商品模型
-```javascript
-// src/app/models/product.model.js
-const { DataTypes } = require('sequelize');
-const BaseModel = require('./base.model');
+```typescript
+// src/app/models/product.model.ts
+import { DataTypes, Model, Optional } from 'sequelize';
+import BaseModel from './base.model';
+import { ProductAttributes, ProductCreationAttributes } from '../types/product.types';
 
-class Product extends BaseModel {
-  async hasEnoughStock(quantity) {
+// 商品模型接口
+interface ProductInstance extends Model<ProductAttributes, ProductCreationAttributes>, ProductAttributes {
+  // 实例方法
+  hasEnoughStock(quantity: number): Promise<boolean>;
+  getStats(): Promise<ProductStats>;
+  getVariants(): Promise<ProductVariant[]>;
+  getInventory(): Promise<ProductInventory | null>;
+  
+  // 关联方法
+  countOrderItemList(): Promise<number>;
+  countReviewList(): Promise<number>;
+}
+
+// 商品统计接口
+interface ProductStats {
+  orderCount: number;
+  reviewCount: number;
+  totalSales: number;
+  averageRating: number;
+}
+
+class Product extends BaseModel<ProductAttributes, ProductCreationAttributes> {
+  declare id: number;
+  declare name: string;
+  declare description: string;
+  declare price: number;
+  declare category_id: number;
+  declare brand_id: number;
+  declare status: ProductStatus;
+  declare created_at: Date;
+  declare updated_at: Date;
+
+  /**
+   * 检查是否有足够库存
+   * @param quantity 需要数量
+   * @returns 是否有足够库存
+   */
+  async hasEnoughStock(quantity: number): Promise<boolean> {
     const inventory = await this.getInventory();
-    return inventory && inventory.available_quantity >= quantity;
+    return inventory ? inventory.available_quantity >= quantity : false;
   }
 
-  async getStats() {
+  /**
+   * 获取商品统计信息
+   * @returns 商品统计
+   */
+  async getStats(): Promise<ProductStats> {
     const [orderCount, reviewCount] = await Promise.all([
       this.countOrderItemList(),
       this.countReviewList ? this.countReviewList() : 0
@@ -487,6 +644,7 @@ class Product extends BaseModel {
   }
 }
 
+// 初始化商品模型
 Product.init({
   sku: {
     type: DataTypes.STRING(100),
@@ -547,16 +705,17 @@ module.exports = Product;
 
 ### 3.4 模型关联关系
 
-```javascript
-// src/app/models/index.js
-const User = require('./user.model');
-const Role = require('./role.model');
-const Permission = require('./permission.model');
-const Product = require('./product.model');
-const Category = require('./category.model');
-const Order = require('./order.model');
-const OrderItem = require('./order-item.model');
-const Inventory = require('./inventory.model');
+```typescript
+// src/app/models/index.ts
+import { Sequelize } from 'sequelize';
+import User from './user.model';
+import Role from './role.model';
+import Permission from './permission.model';
+import Product from './product.model';
+import Category from './category.model';
+import Order from './order.model';
+import OrderItem from './order-item.model';
+import Inventory from './inventory.model';
 
 // 用户角色关联 - 多对多
 User.belongsToMany(Role, {
@@ -642,26 +801,42 @@ module.exports = {
 
 ### 4.1 Sequelize CLI配置
 
-```javascript
+```typescript
 // .sequelizerc
-const path = require('path');
+import * as path from 'path';
 
-module.exports = {
-  'config': path.resolve('src', 'config', 'database.js'),
+// Sequelize CLI配置接口
+interface SequelizeConfig {
+  'config': string;
+  'models-path': string;
+  'seeders-path': string;
+  'migrations-path': string;
+}
+
+const config: SequelizeConfig = {
+  'config': path.resolve('src', 'config', 'database.ts'),
   'models-path': path.resolve('src', 'app', 'models'),
   'seeders-path': path.resolve('src', 'database', 'seeders'),
   'migrations-path': path.resolve('src', 'database', 'migrations')
 };
+
+export default config;
 ```
 
 ### 4.2 数据库迁移
 
-```javascript
-// src/database/migrations/20241201000001-create-users.js
-'use strict';
+```typescript
+// src/database/migrations/20241201000001-create-users.ts
+import { QueryInterface, DataTypes } from 'sequelize';
 
-module.exports = {
-  async up(queryInterface, Sequelize) {
+// 迁移接口
+interface Migration {
+  up(queryInterface: QueryInterface, Sequelize: typeof DataTypes): Promise<void>;
+  down(queryInterface: QueryInterface, Sequelize: typeof DataTypes): Promise<void>;
+}
+
+const migration: Migration = {
+  async up(queryInterface: QueryInterface, Sequelize: typeof DataTypes): Promise<void> {
     await queryInterface.createTable('users', {
       id: {
         allowNull: false,
@@ -707,20 +882,28 @@ module.exports = {
     await queryInterface.addIndex('users', ['email']);
   },
 
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface: QueryInterface, Sequelize: typeof DataTypes): Promise<void> {
     await queryInterface.dropTable('users');
   }
 };
+
+export default migration;
 ```
 
 ### 4.3 种子数据
 
-```javascript
-// src/database/seeders/20241201000001-init-roles.js
-'use strict';
+```typescript
+// src/database/seeders/20241201000001-init-roles.ts
+import { QueryInterface, DataTypes } from 'sequelize';
 
-module.exports = {
-  async up(queryInterface, Sequelize) {
+// 种子数据接口
+interface Seeder {
+  up(queryInterface: QueryInterface, Sequelize: typeof DataTypes): Promise<void>;
+  down(queryInterface: QueryInterface, Sequelize: typeof DataTypes): Promise<void>;
+}
+
+const seeder: Seeder = {
+  async up(queryInterface: QueryInterface, Sequelize: typeof DataTypes): Promise<void> {
     await queryInterface.bulkInsert('roles', [
       {
         id: 1,
@@ -758,27 +941,50 @@ module.exports = {
     ]);
   },
 
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface: QueryInterface, Sequelize: typeof DataTypes): Promise<void> {
     await queryInterface.bulkDelete('role_permissions', null, {});
     await queryInterface.bulkDelete('permissions', null, {});
     await queryInterface.bulkDelete('roles', null, {});
   }
 };
+
+export default seeder;
 ```
 
 ## 5. 数据库操作最佳实践
 
 ### 5.1 事务处理
 
-```javascript
+```typescript
 // 订单创建事务示例
-const createOrderWithItems = async (orderData, items) => {
-  return await sequelize.transaction(async (t) => {
+import { Transaction } from 'sequelize';
+import { OrderAttributes, OrderCreationAttributes } from '../types/order.types';
+import { OrderItemAttributes, OrderItemCreationAttributes } from '../types/order.types';
+
+// 订单数据接口
+interface OrderData extends OrderCreationAttributes {
+  user_id: number;
+  total_amount: number;
+  status: string;
+}
+
+// 订单商品数据接口
+interface OrderItemData extends OrderItemCreationAttributes {
+  product_id: number;
+  quantity: number;
+  unit_price: number;
+}
+
+const createOrderWithItems = async (
+  orderData: OrderData, 
+  items: OrderItemData[]
+): Promise<Order> => {
+  return await sequelize.transaction(async (t: Transaction): Promise<Order> => {
     // 创建订单
     const order = await Order.create(orderData, { transaction: t });
     
     // 创建订单商品
-    const orderItems = items.map(item => ({
+    const orderItems: OrderItemCreationAttributes[] = items.map(item => ({
       ...item,
       order_id: order.id
     }));
@@ -801,9 +1007,9 @@ const createOrderWithItems = async (orderData, items) => {
 
 ### 5.2 查询优化
 
-```javascript
+```typescript
 // 预加载关联数据，避免N+1查询
-const getOrdersWithDetails = async (userId) => {
+const getOrdersWithDetails = async (userId: number): Promise<Order[]> => {
   return await Order.findAll({
     where: { user_id: userId },
     include: [
@@ -831,16 +1037,27 @@ const getOrdersWithDetails = async (userId) => {
 
 ### 5.3 缓存策略
 
-```javascript
+```typescript
 // Redis缓存示例
-const getProductWithCache = async (productId) => {
+import { redis } from '../utils/redis.client';
+import { Product, Category, Inventory } from '../models';
+import { ProductInstance } from '../types/product.types';
+
+/**
+ * 获取商品信息（带缓存）
+ * @param productId 商品ID
+ * @returns 商品信息
+ */
+const getProductWithCache = async (productId: number): Promise<ProductInstance | null> => {
   const cacheKey = `product:${productId}`;
   
   // 尝试从缓存获取
-  let product = await redis.get(cacheKey);
+  let product: ProductInstance | null = null;
+  const cachedData = await redis.get(cacheKey);
   
-  if (product) {
-    return JSON.parse(product);
+  if (cachedData) {
+    product = JSON.parse(cachedData) as ProductInstance;
+    return product;
   }
   
   // 从数据库获取
