@@ -405,7 +405,7 @@ graph TB
 ```
 
 ### 权限常量定义
-```
+```typescript
 // src/access/permissions.ts
 export const PERMISSIONS = {
   CUSTOMER: {
@@ -472,7 +472,7 @@ export const PERMISSION_DESCRIPTIONS: Record<PermissionCode, string> = {
 ## TypeScript 类型定义
 
 ### JSX 属性扩展
-```
+```typescript
 // src/access/types.d.ts
 import { PERMISSIONS, PermissionCode } from './permissions';
 
@@ -503,7 +503,7 @@ declare namespace JSX {
 ```
 
 ### 权限组件类型
-```
+```typescript
 // src/access/components.d.ts
 import { ReactNode } from 'react';
 import { PermissionCode } from './permissions';
@@ -527,7 +527,7 @@ interface AccessHTMLAttributes<T> extends React.HTMLAttributes<T> {
 ## 使用示例
 
 ### 基础使用
-```
+```typescript
 // src/components/CustomerManagement.tsx
 import React from 'react';
 import { PERMISSIONS } from '@/access/permissions';
@@ -558,7 +558,7 @@ const CustomerManagement: React.FC = () => {
 ```
 
 ### 高级使用
-```
+```typescript
 // src/components/Dashboard.tsx
 import React from 'react';
 import { PERMISSIONS } from '@/access/permissions';
@@ -597,7 +597,7 @@ const Dashboard: React.FC = () => {
 ```
 
 ### 与现有权限系统的集成
-```
+```typescript
 // src/components/LegacyAccessIntegration.tsx
 import React from 'react';
 import { useAccess } from '@/access/context';
@@ -636,7 +636,7 @@ const LegacyAccessIntegration: React.FC = () => {
 ```
 
 ### 权限动态控制示例
-```
+```typescript
 // src/components/DynamicAccessControl.tsx
 import React, { useState, useEffect } from 'react';
 import { PERMISSIONS } from '@/access/permissions';
@@ -683,7 +683,7 @@ const DynamicAccessControl: React.FC = () => {
 ## 最佳实践
 
 ### 1. 权限组织和命名规范
-```
+```typescript
 // 推荐的权限命名规范
 // {资源}.{操作}
 // 例如: customer.create, payment.approve, user.delete
@@ -710,7 +710,7 @@ export const PERMISSIONS = {
 ```
 
 ### 2. 权限组合使用
-```
+```typescript
 // 使用数组进行权限组合检查
 const PaymentApprovalSection: React.FC = () => {
   return (
@@ -768,7 +768,7 @@ const PermissionHierarchy: React.FC = () => {
 ### 编译时错误处理
 Vite 插件会在编译时检查权限码的有效性，并提供清晰的错误信息：
 
-```
+```typescript
 // vite-plugin-access-control/transformer.js 中的错误处理
 function transformAccessAttribute(path, accessAttribute, fallbackAttribute, options) {
   const jsxElement = path.parent;
@@ -857,7 +857,7 @@ function getAttributeValue(attribute) {
 ### 运行时错误处理
 在运行时，权限检查函数应该提供适当的错误处理：
 
-```
+```typescript
 // src/access/runtime.ts
 export const checkPermission = (code: string | string[]): boolean => {
   try {
@@ -908,7 +908,7 @@ export const setGlobalPermissions = (permissions: Record<string, any>) => {
 ### 调试工具
 为方便调试，可以提供一个权限调试组件：
 
-```
+```typescript
 // src/access/debug/PermissionDebugger.tsx
 import React, { useState } from 'react';
 import { useAccess } from '@/access/context';
@@ -971,7 +971,7 @@ export default PermissionDebugger;
 ### 开发模式增强
 在开发模式下提供额外的警告和信息：
 
-```
+```typescript
 // src/access/runtime.ts
 export const checkPermission = (code: string | string[]): boolean => {
   // 开发模式下的额外检查
@@ -1088,7 +1088,7 @@ export const setGlobalPermissions = (permissions: Record<string, any>) => {
 3. **内存优化**: 及时清理无用权限数据
 
 ### 代码示例
-```
+```typescript
 // src/access/optimizer.ts
 class PermissionCache {
   private cache: Map<string, boolean> = new Map();
@@ -1138,7 +1138,7 @@ export const checkPermissionWithCache = (code: string | string[]): boolean => {
 ## 测试策略
 
 ### 单元测试
-```
+```typescript
 // src/access/__tests__/access.test.tsx
 import React from 'react';
 import { render, screen } from '@testing-library/react';
@@ -1202,7 +1202,7 @@ describe('Access Control', () => {
 ```
 
 ### 集成测试
-```
+```typescript
 // src/access/__tests__/integration.test.ts
 import { transform } from '@/vite-plugin-access-control/transformer';
 
@@ -1226,7 +1226,7 @@ describe('Vite Plugin Integration', () => {
 ## 部署与维护
 
 ### 配置文件
-```
+```javascript
 // vite.config.js
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -1245,7 +1245,7 @@ export default defineConfig({
 ```
 
 ### 权限配置管理
-```
+```json
 // src/access/permissions.json
 {
   "permissions": [
@@ -1308,7 +1308,7 @@ graph TB
 ```
 
 ### 监控和日志
-```
+```typescript
 // src/access/monitoring.ts
 class AccessMonitor {
   private logs: Array<{ timestamp: number; code: string; result: boolean; component: string }> = [];
