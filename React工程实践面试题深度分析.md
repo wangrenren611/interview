@@ -2,8 +2,8 @@
 
 ## 1. 项目架构设计
 
-### 现代化React项目结构
-**模块化架构示例：**
+### 现代化React + TypeScript项目结构
+**基于TypeScript的模块化架构示例：**
 ```
 src/
 ├── components/           # 通用组件
@@ -15,6 +15,10 @@ src/
 ├── services/            # API服务层
 ├── stores/              # 状态管理
 ├── types/               # TypeScript类型定义
+│   ├── api.ts           # API响应类型
+│   ├── user.ts          # 用户相关类型
+│   ├── common.ts        # 通用类型
+│   └── index.ts         # 类型导出
 ├── pages/               # 页面组件
 ├── routes/              # 路由配置
 ├── styles/              # 样式文件
@@ -22,65 +26,272 @@ src/
 └── constants/           # 常量定义
 ```
 
+### TypeScript配置最佳实践
+**企业级tsconfig.json配置：**
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["DOM", "DOM.Iterable", "ES6"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "declaration": true,
+    "declarationMap": true,
+    "incremental": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "baseUrl": "src",
+    "paths": {
+      "@/*": ["*"],
+      "@/components/*": ["components/*"],
+      "@/hooks/*": ["hooks/*"],
+      "@/types/*": ["types/*"],
+      "@/utils/*": ["utils/*"]
+    }
+  },
+  "include": [
+    "src",
+    "src/**/*",
+    "src/**/*.ts",
+    "src/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "build",
+    "dist"
+  ]
+}
+```
+
+### 类型定义体系设计
+**完整的TypeScript类型定义：**
+
+```typescript
+// src/types/common.ts - 通用类型定义
+export interface ApiResponse<T = any> {
+  code: number
+  message: string
+  data: T
+  timestamp: number
+}
+
+export interface PaginationParams {
+  page: number
+  pageSize: number
+  total?: number
+}
+
+export interface PaginatedResponse<T> {
+  list: T[]
+  pagination: PaginationParams
+}
+
+export type RequestStatus = 'idle' | 'loading' | 'success' | 'error'
+
+export interface AsyncState<T> {
+  data: T | null
+  status: RequestStatus
+  error: string | null
+}
+
+// 工具类型
+export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>
+export type RequiredNonNull<T> = { [P in keyof T]-?: NonNullable<T[P]> }
+export type DeepPartial<T> = { [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P] }
+
+// src/types/user.ts - 用户相关类型
+export interface User {
+  id: string
+  name: string
+  email: string
+  phone: string
+  avatar?: string
+  bio?: string
+  lastLogin: string
+  createdAt: string
+  updatedAt: string
+  preferences: UserPreferences
+  roles: UserRole[]
+}
+
+export interface UserPreferences {
+  theme: 'light' | 'dark' | 'auto'
+  language: 'zh-CN' | 'en-US'
+  notifications: boolean
+  timezone: string
+}
+
+export interface UserRole {
+  id: string
+  name: string
+  permissions: string[]
+}
+
+export interface CreateUserRequest {
+  name: string
+  email: string
+  phone: string
+  password: string
+  avatar?: string
+  bio?: string
+}
+
+export interface UpdateUserRequest extends Partial<Omit<User, 'id' | 'createdAt' | 'updatedAt'>> {}
+
+export interface LoginCredentials {
+  email: string
+  password: string
+  remember?: boolean
+}
+
+export interface AuthResponse {
+  user: User
+  token: string
+  refreshToken: string
+  expiresIn: number
+}
+
+// src/types/post.ts - 文章相关类型
+export interface Post {
+  id: string
+  title: string
+  content: string
+  excerpt: string
+  coverImage?: string
+  authorId: string
+  author: Pick<User, 'id' | 'name' | 'avatar'>
+  tags: Tag[]
+  status: PostStatus
+  viewCount: number
+  likeCount: number
+  commentCount: number
+  createdAt: string
+  updatedAt: string
+  publishedAt?: string
+}
+
+export type PostStatus = 'draft' | 'published' | 'archived'
+
+export interface Tag {
+  id: string
+  name: string
+  color: string
+}
+
+export interface CreatePostRequest {
+  title: string
+  content: string
+  excerpt?: string
+  coverImage?: string
+  tags: string[]
+  status: PostStatus
+}
+
+export interface PostListParams extends PaginationParams {
+  authorId?: string
+  status?: PostStatus
+  tags?: string[]
+  search?: string
+  sortBy?: 'createdAt' | 'updatedAt' | 'viewCount' | 'likeCount'
+  sortOrder?: 'asc' | 'desc'
+}
+```
+
 ### 组件设计原则深度实践
 
-**现代React组件设计的核心理念：**
+**现代React + TypeScript组件设计的核心理念：**
 
 在2025年的React生态中，组件设计已经从简单的UI拆分进化为一套完整的软件工程实践。优秀的组件设计不仅仅是代码的重用，更是系统架构稳定性和可维护性的基石。基于SOLID原则和React最佳实践，现代组件设计需要遵循以下核心理念：
 
-#### 单一职责原则(SRP)在React组件中的深度应用
+#### 单一职责原则(SRP)在React + TypeScript组件中的深度应用
 
 **单一职责的具体含义：**
 一个React组件应该只有一个变化的理由。这意味着组件只应该关注一个特定的业务功能或UI职责，而不是试图处理多个不相关的关注点。
 
 **反面案例 - 违反单一职责原则：**
-```jsx
+```typescript
 // ❌ 错误设计：一个组件承担过多职责
-function UserDashboard({ userId }) {
-  const [user, setUser] = useState(null)
-  const [posts, setPosts] = useState([])
-  const [notifications, setNotifications] = useState([])
-  const [analytics, setAnalytics] = useState(null)
+import React, { useState, useEffect } from 'react'
+import { User, Post, Notification, Analytics } from '@/types'
+import { fetchUser, fetchUserPosts, fetchNotifications, fetchAnalytics, notificationService } from '@/services'
+
+interface UserDashboardProps {
+  userId: string
+}
+
+function UserDashboard({ userId }: UserDashboardProps) {
+  const [user, setUser] = useState<User | null>(null)
+  const [posts, setPosts] = useState<Post[]>([])
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [analytics, setAnalytics] = useState<Analytics | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState<string | null>(null)
   
   useEffect(() => {
-    // 职责1：用户数据获取
-    fetchUser(userId).then(setUser).catch(setError)
+    const loadData = async () => {
+      try {
+        // 职责1：用户数据获取
+        const userData = await fetchUser(userId)
+        setUser(userData)
+        
+        // 职责2：用户文章获取
+        const postsData = await fetchUserPosts(userId)
+        setPosts(postsData)
+        
+        // 职责3：通知数据获取
+        const notificationsData = await fetchNotifications(userId)
+        setNotifications(notificationsData)
+        
+        // 职责4：分析数据获取
+        const analyticsData = await fetchAnalytics(userId)
+        setAnalytics(analyticsData)
+        
+        setLoading(false)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error')
+        setLoading(false)
+      }
+    }
     
-    // 职责2：用户文章获取
-    fetchUserPosts(userId).then(setPosts).catch(setError)
-    
-    // 职责3：通知数据获取
-    fetchNotifications(userId).then(setNotifications).catch(setError)
-    
-    // 职责4：分析数据获取
-    fetchAnalytics(userId).then(setAnalytics).catch(setError)
-    
-    setLoading(false)
+    loadData()
   }, [userId])
   
   // 职责5：数据验证
-  const validateUserData = (data) => {
-    return data.email && data.name && data.phone
+  const validateUserData = (data: User): boolean => {
+    return !!(data.email && data.name && data.phone)
   }
   
   // 职责6：数据格式化
-  const formatDate = (date) => {
+  const formatDate = (date: string): string => {
     return new Intl.DateTimeFormat('zh-CN').format(new Date(date))
   }
   
   // 职责7：通知发送
-  const sendNotification = async (message) => {
+  const sendNotification = async (message: string): Promise<void> => {
     await notificationService.send(userId, message)
   }
+  
+  if (loading) return <div>加载中...</div>
+  if (error) return <div>错误: {error}</div>
+  if (!user) return <div>用户不存在</div>
   
   return (
     <div className="dashboard">
       {/* 职责8：复杂的UI渲染逻辑 */}
       <header>
-        <h1>{user?.name}的仪表板</h1>
-        <span>最后登录：{user && formatDate(user.lastLogin)}</span>
+        <h1>{user.name}的仪表板</h1>
+        <span>最后登录：{formatDate(user.lastLogin)}</span>
       </header>
       
       <div className="content">
@@ -115,97 +326,152 @@ function UserDashboard({ userId }) {
 3. **重用性差**：无法单独复用其中的某个功能
 4. **职责混乱**：数据获取、验证、格式化、UI渲染都混在一起
 5. **性能问题**：任何状态变化都会导致整个组件重新渲染
+6. **类型安全性差**：复杂的状态管理容易出现类型错误
 
 **正确设计 - 遵循单一职责原则：**
-```jsx
-// ✅ 职责分离：数据获取逻辑
-function useUserData(userId) {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  
-  useEffect(() => {
-    let isMounted = true
-    
-    fetchUser(userId)
-      .then(data => {
-        if (isMounted) {
-          setUser(data)
-          setLoading(false)
-        }
-      })
-      .catch(err => {
-        if (isMounted) {
-          setError(err)
-          setLoading(false)
-        }
-      })
-    
-    return () => {
-      isMounted = false
-    }
-  }, [userId])
-  
-  return { user, loading, error }
+
+```typescript
+// ✅ 职责分离：数据获取逻辑 - 自定义Hook
+import { useState, useEffect } from 'react'
+import { User, AsyncState } from '@/types'
+import { fetchUser } from '@/services'
+
+interface UseUserDataReturn extends AsyncState<User> {
+  refetch: () => Promise<void>
 }
 
-// ✅ 职责分离：用户文章数据
-function useUserPosts(userId) {
-  const [posts, setPosts] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+export function useUserData(userId: string): UseUserDataReturn {
+  const [data, setData] = useState<User | null>(null)
+  const [status, setStatus] = useState<RequestStatus>('idle')
+  const [error, setError] = useState<string | null>(null)
   
-  useEffect(() => {
+  const fetchUserData = async (): Promise<void> => {
     if (!userId) return
     
-    let isMounted = true
+    setStatus('loading')
+    setError(null)
     
-    fetchUserPosts(userId)
-      .then(data => {
-        if (isMounted) {
-          setPosts(data)
-          setLoading(false)
-        }
-      })
-      .catch(err => {
-        if (isMounted) {
-          setError(err)
-          setLoading(false)
-        }
-      })
-    
-    return () => {
-      isMounted = false
+    try {
+      const userData = await fetchUser(userId)
+      setData(userData)
+      setStatus('success')
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch user'
+      setError(errorMessage)
+      setStatus('error')
     }
+  }
+  
+  useEffect(() => {
+    fetchUserData()
   }, [userId])
   
-  return { posts, loading, error, refetch: () => fetchUserPosts(userId).then(setPosts) }
-}
-
-// ✅ 职责分离：数据验证工具
-const userValidators = {
-  email: (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
-  phone: (phone) => /^1[3-9]\d{9}$/.test(phone),
-  name: (name) => name && name.length >= 2 && name.length <= 50,
-  
-  validateUser: (user) => {
-    const errors = []
-    if (!userValidators.email(user.email)) {
-      errors.push('邮箱格式不正确')
-    }
-    if (!userValidators.phone(user.phone)) {
-      errors.push('手机号格式不正确')
-    }
-    if (!userValidators.name(user.name)) {
-      errors.push('姓名长度必须在2-50字符之间')
-    }
-    return { isValid: errors.length === 0, errors }
+  return {
+    data,
+    status,
+    error,
+    refetch: fetchUserData,
   }
 }
 
+// ✅ 职责分离：用户文章数据
+import { Post, PaginatedResponse, PostListParams } from '@/types'
+import { fetchUserPosts } from '@/services'
+
+interface UseUserPostsReturn extends AsyncState<Post[]> {
+  refetch: () => Promise<void>
+  loadMore: () => Promise<void>
+  hasMore: boolean
+}
+
+export function useUserPosts(userId: string, params?: Partial<PostListParams>): UseUserPostsReturn {
+  const [data, setData] = useState<Post[]>([])
+  const [status, setStatus] = useState<RequestStatus>('idle')
+  const [error, setError] = useState<string | null>(null)
+  const [hasMore, setHasMore] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  
+  const fetchPosts = async (page: number = 1, append: boolean = false): Promise<void> => {
+    if (!userId) return
+    
+    setStatus('loading')
+    setError(null)
+    
+    try {
+      const response: PaginatedResponse<Post> = await fetchUserPosts(userId, {
+        page,
+        pageSize: 10,
+        ...params,
+      })
+      
+      setData(prev => append ? [...prev, ...response.list] : response.list)
+      setHasMore(response.list.length === 10) // 假设pageSize为10
+      setCurrentPage(page)
+      setStatus('success')
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch posts'
+      setError(errorMessage)
+      setStatus('error')
+    }
+  }
+  
+  useEffect(() => {
+    fetchPosts(1, false)
+  }, [userId, params])
+  
+  const refetch = (): Promise<void> => fetchPosts(1, false)
+  const loadMore = (): Promise<void> => fetchPosts(currentPage + 1, true)
+  
+  return {
+    data,
+    status,
+    error,
+    refetch,
+    loadMore,
+    hasMore,
+  }
+}
+
+// ✅ 职责分离：数据验证工具
+import { User } from '@/types'
+
+type ValidationResult = {
+  isValid: boolean
+  errors: string[]
+}
+
+export const userValidators = {
+  email: (email: string): boolean => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  },
+  
+  phone: (phone: string): boolean => {
+    return /^1[3-9]\d{9}$/.test(phone)
+  },
+  
+  name: (name: string): boolean => {
+    return name && name.length >= 2 && name.length <= 50
+  },
+  
+  validateUser: (user: Partial<User>): ValidationResult => {
+    const errors: string[] = []
+    
+    if (user.email && !userValidators.email(user.email)) {
+      errors.push('邮箱格式不正确')
+    }
+    if (user.phone && !userValidators.phone(user.phone)) {
+      errors.push('手机号格式不正确')
+    }
+    if (user.name && !userValidators.name(user.name)) {
+      errors.push('姓名长度必须在2-50字符之间')
+    }
+    
+    return { isValid: errors.length === 0, errors }
+  }
+} as const
 // ✅ 职责分离：日期格式化工具
-const dateFormatters = {
-  toLocalDate: (date) => {
+export const dateFormatters = {
+  toLocalDate: (date: string): string => {
     return new Intl.DateTimeFormat('zh-CN', {
       year: 'numeric',
       month: '2-digit',
@@ -213,10 +479,10 @@ const dateFormatters = {
     }).format(new Date(date))
   },
   
-  toRelativeTime: (date) => {
+  toRelativeTime: (date: string): string => {
     const now = new Date()
     const target = new Date(date)
-    const diffInSeconds = Math.floor((now - target) / 1000)
+    const diffInSeconds = Math.floor((now.getTime() - target.getTime()) / 1000)
     
     if (diffInSeconds < 60) return '刚刚'
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}分钟前`
@@ -225,11 +491,20 @@ const dateFormatters = {
     
     return dateFormatters.toLocalDate(date)
   }
+} as const
+
+// ✅ 职责分离：组件定义 - TypeScript版本
+import React, { memo } from 'react'
+import { User } from '@/types'
+
+interface UserProfileCardProps {
+  user: User | null
+  loading?: boolean
 }
 
-// ✅ 职责分离：用户信息展示组件
-function UserProfileCard({ user }) {
-  if (!user) return <div className="profile-skeleton">加载中...</div>
+const UserProfileCard: React.FC<UserProfileCardProps> = memo(({ user, loading = false }) => {
+  if (loading) return <div className="profile-skeleton">加载中...</div>
+  if (!user) return <div className="profile-empty">用户不存在</div>
   
   const { isValid, errors } = userValidators.validateUser(user)
   
@@ -240,6 +515,7 @@ function UserProfileCard({ user }) {
           src={user.avatar || '/default-avatar.png'} 
           alt={user.name}
           className="avatar"
+          loading="lazy"
         />
         <div className="user-basic">
           <h3>{user.name}</h3>
@@ -253,66 +529,42 @@ function UserProfileCard({ user }) {
           )}
         </div>
       </div>
-      
-      <div className="user-stats">
-        <div className="stat">
-          <span className="label">最后登录</span>
-          <span className="value">{dateFormatters.toRelativeTime(user.lastLogin)}</span>
-        </div>
-        <div className="stat">
-          <span className="label">注册时间</span>
-          <span className="value">{dateFormatters.toLocalDate(user.createdAt)}</span>
-        </div>
-      </div>
     </div>
   )
+})
+
+UserProfileCard.displayName = 'UserProfileCard'
+
+interface UserPostsListProps {
+  userId: string
 }
 
-// ✅ 职责分离：文章列表组件
-function UserPostsList({ userId }) {
-  const { posts, loading, error, refetch } = useUserPosts(userId)
+const UserPostsList: React.FC<UserPostsListProps> = memo(({ userId }) => {
+  const { data: posts, status, error, refetch } = useUserPosts(userId)
   
-  if (loading) return <PostsListSkeleton />
-  if (error) return <ErrorMessage error={error} onRetry={refetch} />
-  if (posts.length === 0) return <EmptyState message="暂无文章" />
+  if (status === 'loading') return <div>加载中...</div>
+  if (status === 'error') return <div>错误: {error}</div>
+  if (posts?.length === 0) return <div>暂无文章</div>
   
   return (
     <div className="posts-list">
       <div className="list-header">
-        <h3>最新文章 ({posts.length})</h3>
-        <button onClick={refetch} className="refresh-btn">
+        <h3>最新文章 ({posts?.length || 0})</h3>
+        <button onClick={refetch} disabled={status === 'loading'}>
           刷新
         </button>
       </div>
       
       <div className="posts-grid">
-        {posts.map(post => (
-          <PostCard 
-            key={post.id} 
-            post={post} 
-            showAuthor={false} // 已知是当前用户的文章
-          />
+        {posts?.map(post => (
+          <div key={post.id}>{post.title}</div>
         ))}
       </div>
     </div>
   )
-}
+})
 
-// ✅ 职责分离：主仪表板组件（仅负责布局协调）
-function UserDashboard({ userId }) {
-  const { user, loading: userLoading, error: userError } = useUserData(userId)
-  
-  if (userLoading) return <DashboardSkeleton />
-  if (userError) return <ErrorBoundary error={userError} />
-  if (!user) return <NotFoundPage />
-  
-  return (
-    <div className="user-dashboard">
-      <header className="dashboard-header">
-        <h1>{user.name}的仪表板</h1>
-        <DashboardActions userId={userId} />
-      </header>
-      
+UserPostsList.displayName = 'UserPostsList'      
       <div className="dashboard-content">
         <aside className="sidebar">
           <UserProfileCard user={user} />
@@ -708,44 +960,122 @@ Vite: 50-200ms (提升95%+)
 - **Vite**: 基于ES模块的按需编译，原生ESM + esbuild预构建
 
 **实际项目中的体验差异示例：**
-```javascript
-// Vite开发环境启动配置
-// vite.config.js
+```typescript
+// vite.config.ts - 完整的TypeScript配置
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
+import { resolve } from 'path'
+import type { PluginOption } from 'vite'
 
-export default defineConfig({
-  plugins: [
-    // 使用SWC替代Babel，编译速度提升10倍
-    react({
-      // Fast Refresh配置
-      fastRefresh: true,
-      // SWC配置选项
-      swcOptions: {
-        jsc: {
-          parser: {
-            syntax: 'typescript',
-            tsx: true,
-            decorators: false,
-          },
-          transform: {
-            react: {
-              runtime: 'automatic',
-              development: true,
-              refresh: true,
+interface ViteConfigOptions {
+  mode: string
+  command: 'build' | 'serve'
+}
+
+export default defineConfig(({ mode, command }: ViteConfigOptions) => {
+  const isDev = command === 'serve'
+  const isProd = mode === 'production'
+  
+  return {
+    plugins: [
+      // 使用SWC替代Babel，编译速度提升10倍
+      react({
+        // Fast Refresh配置
+        fastRefresh: true,
+        // SWC配置选项
+        swcOptions: {
+          jsc: {
+            parser: {
+              syntax: 'typescript',
+              tsx: true,
+              decorators: false,
+            },
+            transform: {
+              react: {
+                runtime: 'automatic',
+                development: isDev,
+                refresh: isDev,
+              },
             },
           },
         },
+      }),
+    ] as PluginOption[],
+    
+    // TypeScript路径映射
+    resolve: {
+      alias: {
+        '@': resolve(__dirname, 'src'),
+        '@/components': resolve(__dirname, 'src/components'),
+        '@/hooks': resolve(__dirname, 'src/hooks'),
+        '@/types': resolve(__dirname, 'src/types'),
+        '@/utils': resolve(__dirname, 'src/utils'),
+        '@/services': resolve(__dirname, 'src/services'),
+        '@/stores': resolve(__dirname, 'src/stores'),
       },
-    }),
-  ],
-  // 开发服务器配置
-  server: {
-    port: 3000,
-    open: true,
-    // 热更新配置
-    hmr: {
-      overlay: true,
+    },
+    
+    // 开发服务器配置
+    server: {
+      port: 3000,
+      open: true,
+      // 热更新配置
+      hmr: {
+        overlay: true,
+        port: 3001,
+      },
+      // TypeScript类型检查代理
+      proxy: {
+        '/api': {
+          target: 'http://localhost:8080',
+          changeOrigin: true,
+          rewrite: (path: string) => path.replace(/^\/api/, ''),
+        },
+      },
+    },
+    
+    // 构建配置
+    build: {
+      target: 'es2020',
+      outDir: 'dist',
+      sourcemap: isDev,
+      minify: isProd ? 'esbuild' : false,
+      
+      // TypeScript构建优化
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            react: ['react', 'react-dom'],
+            router: ['react-router-dom'],
+            ui: ['@mui/material', 'antd'],
+            utils: ['lodash-es', 'dayjs'],
+          },
+        },
+      },
+    },
+    
+    // TypeScript编译选项
+    esbuild: {
+      target: 'es2020',
+      jsx: 'automatic',
+      jsxImportSource: 'react',
+    },
+    
+    // 依赖预构建
+    optimizeDeps: {
+      include: [
+        'react',
+        'react-dom',
+        'react-router-dom',
+        '@mui/material',
+        'lodash-es',
+      ],
+      esbuildOptions: {
+        target: 'es2020',
+      },
+    },
+  }
+})
     },
   },
 })
@@ -1209,27 +1539,39 @@ export default defineConfig({
 
 **useDeferredValue和useTransition的实际应用：**
 
-```jsx
-import { useState, useDeferredValue, useTransition, useMemo } from 'react'
+```typescript
+import React, { useState, useDeferredValue, useTransition, useMemo } from 'react'
 import { useStore } from './store'
 
+interface DataItem {
+  id: string
+  name: string
+  category: string
+  createdAt: string
+}
+
+interface DataListProps {
+  initialData?: DataItem[]
+}
+
 // 大数据列表的性能优化
-function DataList() {
-  const [query, setQuery] = useState('')
+const DataList: React.FC<DataListProps> = ({ initialData = [] }) => {
+  const [query, setQuery] = useState<string>('')
   const [isPending, startTransition] = useTransition()
   
   // 延迟更新搜索查询，避免阻塞UI
   const deferredQuery = useDeferredValue(query)
-  const { data, searchData } = useStore()
+  const { data, searchData } = useStore<DataItem[]>()
   
   // 使用并发特性优化搜索
-  const filteredData = useMemo(() => {
-    return data.filter(item => 
+  const filteredData = useMemo((): DataItem[] => {
+    const currentData = data || initialData
+    return currentData.filter((item: DataItem) => 
       item.name.toLowerCase().includes(deferredQuery.toLowerCase())
     )
-  }, [data, deferredQuery])
+  }, [data, initialData, deferredQuery])
   
-  const handleSearch = (newQuery) => {
+  const handleSearch = (newQuery: string): void => {
     setQuery(newQuery) // 立即更新输入框
     
     // 将搜索操作标记为非紧急
@@ -1239,34 +1581,175 @@ function DataList() {
   }
   
   return (
-    <div>
+    <div className="data-list">
       <input 
         value={query}
-        onChange={(e) => handleSearch(e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSearch(e.target.value)}
         placeholder="搜索..."
+        className="search-input"
       />
       {isPending && <div className="loading">搜索中...</div>}
       
       <div className="results">
-        {filteredData.map(item => (
+        {filteredData.map((item: DataItem) => (
           <div key={item.id} className="item">
-            {item.name}
+            <h3>{item.name}</h3>
+            <span className="category">{item.category}</span>
           </div>
         ))}
       </div>
     </div>
   )
 }
+
+export default DataList
 ```
 
 **React 19的新特性集成：**
-```jsx
+```typescript
 // React 19的useOptimistic Hook应用
-import { useOptimistic } from 'react'
+import React, { useOptimistic, useState, useCallback } from 'react'
 import { useStore } from './store'
+import type { Todo, CreateTodoRequest, UpdateTodoRequest } from '@/types'
 
-function TodoList() {
-  const { todos, addTodo, updateTodo } = useStore()
+interface TodoListProps {
+  userId: string
+}
+
+const TodoList: React.FC<TodoListProps> = ({ userId }) => {
+  const { todos, addTodo, updateTodo, deleteTodo } = useStore()
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
+  
+  // 乐观更新：在网络请求完成前就更新UI
+  const [optimisticTodos, addOptimisticTodo] = useOptimistic(
+    todos,
+    (currentTodos: Todo[], optimisticTodo: Todo): Todo[] => {
+      return [...currentTodos, optimisticTodo]
+    }
+  )
+  
+  const [optimisticUpdates, updateOptimistic] = useOptimistic(
+    optimisticTodos,
+    (currentTodos: Todo[], update: { id: string; updates: Partial<Todo> }): Todo[] => {
+      return currentTodos.map(todo => 
+        todo.id === update.id 
+          ? { ...todo, ...update.updates }
+          : todo
+      )
+    }
+  )
+  
+  const handleAddTodo = useCallback(async (text: string): Promise<void> => {
+    if (!text.trim()) return
+    
+    const optimisticTodo: Todo = {
+      id: `temp-${Date.now()}`,
+      text: text.trim(),
+      completed: false,
+      userId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    
+    // 立即更新UI
+    addOptimisticTodo(optimisticTodo)
+    setIsSubmitting(true)
+    
+    try {
+      const newTodo = await addTodo({
+        text: text.trim(),
+        userId,
+      } as CreateTodoRequest)
+      
+      // 网络请求成功，不需要额外操作
+      // 乐观更新会自动被真实数据替换
+    } catch (error) {
+      // 网络请求失败，撤销乐观更新
+      console.error('Failed to add todo:', error)
+      // 乐观更新会自动撤销
+    } finally {
+      setIsSubmitting(false)
+    }
+  }, [addTodo, addOptimisticTodo, userId])
+  
+  const handleToggleTodo = useCallback(async (todoId: string): Promise<void> => {
+    const todo = optimisticUpdates.find(t => t.id === todoId)
+    if (!todo) return
+    
+    // 立即更新UI
+    updateOptimistic({
+      id: todoId,
+      updates: { completed: !todo.completed }
+    })
+    
+    try {
+      await updateTodo(todoId, {
+        completed: !todo.completed
+      } as UpdateTodoRequest)
+    } catch (error) {
+      console.error('Failed to update todo:', error)
+      // 乐观更新会自动撤销
+    }
+  }, [optimisticUpdates, updateOptimistic, updateTodo])
+  
+  const handleDeleteTodo = useCallback(async (todoId: string): Promise<void> => {
+    try {
+      await deleteTodo(todoId)
+      // 删除成功后，状态管理器会自动更新数据
+    } catch (error) {
+      console.error('Failed to delete todo:', error)
+    }
+  }, [deleteTodo])
+  
+  return (
+    <div className="todo-list">
+      <div className="todo-input">
+        <input 
+          type="text"
+          placeholder="添加新任务..."
+          disabled={isSubmitting}
+          onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => {
+            if (e.key === 'Enter') {
+              const target = e.target as HTMLInputElement
+              handleAddTodo(target.value)
+              target.value = ''
+            }
+          }}
+        />
+      </div>
+      
+      <div className="todo-items">
+        {optimisticUpdates.map((todo: Todo) => (
+          <div 
+            key={todo.id} 
+            className={`todo-item ${todo.completed ? 'completed' : ''}`}
+          >
+            <input 
+              type="checkbox"
+              checked={todo.completed}
+              onChange={() => handleToggleTodo(todo.id)}
+            />
+            <span className="todo-text">{todo.text}</span>
+            <button 
+              onClick={() => handleDeleteTodo(todo.id)}
+              className="delete-btn"
+            >
+              删除
+            </button>
+          </div>
+        ))}
+      </div>
+      
+      {isSubmitting && (
+        <div className="loading-overlay">
+          正在保存...
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default TodoList
   
   // 乐观更新：立即显示UI变化，后台同步数据
   const [optimisticTodos, addOptimisticTodo] = useOptimistic(
@@ -1348,10 +1831,12 @@ function useApp() {
 
 Zustand在2025年已成为中小型项目的首选状态管理方案。相比Redux，它提供了更简洁的API和更小的包体积，同时保持了强大的功能性。
 
-```jsx
+```typescript
 import { create } from 'zustand'
 import { subscribeWithSelector, devtools, persist } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
+import type { User, UserPreferences, LoginCredentials } from '@/types'
+import { authService, userService } from '@/services'
 
 // 复杂状态管理的企业级实践
 interface UserState {
@@ -1380,7 +1865,7 @@ interface UserState {
 }
 
 // 使用多个中间件组合
-const useUserStore = create<UserState>()()
+const useUserStore = create<UserState>()
   devtools( // 开发工具集成
     persist( // 数据持久化
       immer( // 不可变状态更新
@@ -1389,8 +1874,8 @@ const useUserStore = create<UserState>()()
             // 初始状态
             user: null,
             preferences: {
-              theme: 'light',
-              language: 'zh-CN',
+              theme: 'light' as const,
+              language: 'zh-CN' as const,
               notifications: true,
             },
             permissions: [],
@@ -1398,13 +1883,13 @@ const useUserStore = create<UserState>()()
             error: null,
             
             // 同步操作
-            setUser: (user) => set((state) => {
+            setUser: (user: User) => set((state) => {
               state.user = user
-              state.permissions = user.permissions || []
+              state.permissions = user.roles?.flatMap(role => role.permissions) || []
               state.error = null
             }),
             
-            updatePreferences: (newPreferences) => set((state) => {
+            updatePreferences: (newPreferences: Partial<UserPreferences>) => set((state) => {
               Object.assign(state.preferences, newPreferences)
             }),
             
@@ -1413,7 +1898,7 @@ const useUserStore = create<UserState>()()
             }),
             
             // 异步操作实现
-            login: async (credentials) => {
+            login: async (credentials: LoginCredentials): Promise<void> => {
               set((state) => {
                 state.loading = true
                 state.error = null
@@ -1421,14 +1906,14 @@ const useUserStore = create<UserState>()()
               
               try {
                 const response = await authService.login(credentials)
-                const { user, token } = response.data
+                const { user, token } = response
                 
                 // 存储token
                 localStorage.setItem('token', token)
                 
                 set((state) => {
                   state.user = user
-                  state.permissions = user.permissions || []
+                  state.permissions = user.roles?.flatMap(role => role.permissions) || []
                   state.loading = false
                 })
                 
@@ -1436,15 +1921,16 @@ const useUserStore = create<UserState>()()
                 await get().fetchUserProfile()
                 
               } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : '登录失败'
                 set((state) => {
                   state.loading = false
-                  state.error = error.message || '登录失败'
+                  state.error = errorMessage
                 })
                 throw error
               }
             },
             
-            logout: async () => {
+            logout: async (): Promise<void> => {
               try {
                 await authService.logout()
               } catch (error) {
@@ -1459,14 +1945,16 @@ const useUserStore = create<UserState>()()
               }
             },
             
-            fetchUserProfile: async () => {
+            fetchUserProfile: async (): Promise<void> => {
               const state = get()
               if (!state.user?.id) return
               
               try {
                 const profile = await userService.getProfile(state.user.id)
                 set((state) => {
-                  state.user = { ...state.user, ...profile }
+                  if (state.user) {
+                    state.user = { ...state.user, ...profile }
+                  }
                 })
               } catch (error) {
                 set((state) => {
@@ -1475,7 +1963,7 @@ const useUserStore = create<UserState>()()
               }
             },
             
-            updateProfile: async (updates) => {
+            updateProfile: async (updates: Partial<User>): Promise<void> => {
               const state = get()
               if (!state.user?.id) return
               
@@ -1505,14 +1993,19 @@ const useUserStore = create<UserState>()()
             },
             
             // 计算属性
-            isAuthenticated: () => {
+            isAuthenticated: (): boolean => {
               const state = get()
               return !!state.user && !!localStorage.getItem('token')
             },
             
-            hasPermission: (permission) => {
+            hasPermission: (permission: string): boolean => {
               const state = get()
               return state.permissions.includes(permission)
+            },
+            
+            getDisplayName: (): string => {
+              const state = get()
+              return state.user?.name || state.user?.email || '未知用户'
             },
             
             getDisplayName: () => {
